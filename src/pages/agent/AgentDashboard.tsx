@@ -1,5 +1,5 @@
 import { Package, TrendingUp, Award, Calendar, User, RefreshCw, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import "./AgentDashboard.css";
 import "./AgentDashboard.animations.css";
 import "@/styles/scrollbar.css";
@@ -18,7 +18,6 @@ import { testFirebaseConnection } from '@/utils/firebaseTest';
 const AgentDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
   const { stats, loading: statsLoading, error: statsError } = useRealtimeStats();
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'success' | 'error'>('checking');
 
   console.log('AgentDashboard - Rendu initial');
   console.log('Auth - Loading:', authLoading);
@@ -30,17 +29,11 @@ const AgentDashboard = () => {
 
   // Les données de debug sont affichées plus haut dans la console
 
-  const checkConnection = async () => {
-    try {
-      const isConnected = await testFirebaseConnection();
-      setConnectionStatus(isConnected ? 'success' : 'error');
-    } catch (error) {
-      setConnectionStatus('error');
-    }
-  };
-
   useEffect(() => {
-    checkConnection();
+    // Connexion testée au démarrage
+    testFirebaseConnection().catch((error) => {
+      console.log('Erreur connexion Firebase:', error);
+    });
   }, [user?.uid]);
 
   if (!user || statsError) {
