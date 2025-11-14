@@ -1,0 +1,99 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction spéciale pour l'initialisation
+    function isInitializing() {
+      return request.auth != null &&
+             request.auth.token.email.matches('.*@ecocycle\\.ci$') &&
+             !exists(/databases/$(database)/documents/parametres/system_status);
+    }
+    // Fonction de base
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth != null && 
+        request.auth.token.email.matches('.*@ecocycle\\.ci$');
+    }
+
+    function canInitialize() {
+      return isAdmin();
+    }
+
+    // Règle globale pour l'initialisation
+    match /{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if canInitialize();
+    }
+
+    // Collection utilisateurs
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || request.auth.uid == userId;
+    }
+
+    // Collection collectes
+    match /collectes/{collecteId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || 
+        (request.auth != null && request.resource.data.agentId == request.auth.uid);
+    }
+
+    // Collection points
+    match /points/{pointId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Collection statistiques
+    match /statistiques/{statId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Collection agents
+    match /agents/{agentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || request.auth.uid == agentId;
+    }
+
+    // Collection paramètres
+    match /parametres/{paramId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isInitializing();
+    }
+
+    // Collection zones
+    match /zones/{zoneId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Collection objectifs
+    match /objectifs/{objectifId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Collection activites
+    match /activites/{activiteId} {
+      allow read: if isAuthenticated();
+      allow write: if request.auth != null && 
+        (request.resource.data.agentId == request.auth.uid || isAdmin());
+    }
+
+    // Collection qrcodes
+    match /qrcodes/{codeId} {
+      allow read: if isAuthenticated();
+      allow create: if request.auth != null && 
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null && 
+        (resource.data.createdBy == request.auth.uid || 
+         request.resource.data.createdBy == request.auth.uid);
+      allow delete: if request.auth != null && 
+        resource.data.createdBy == request.auth.uid;
+    }
+  }
+}

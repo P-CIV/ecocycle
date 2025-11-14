@@ -1,0 +1,48 @@
+.agent-dashboard {
+  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  --success-gradient: linear-gradient(135deg, #4CAF50 0%, #45B649 100%);
+  --warning-gradient: linear-gradient(135deg, #FFB75E 0%, #ED8F03 100%);
+  --info-gradient: linear-gradient(135deg, #2196F3 0%, #4FC3F7 100%);
+}
+
+.stat-card-collectes {
+  background: var(--primary-gradient) !important;
+  color: white !important;
+}
+
+.stat-card-points {
+  background: var(--success-gradient) !important;
+  color: white !important;
+}
+
+.stat-card-taux {
+  background: var(--warning-gradient) !important;
+  color: white !important;
+}
+
+.stat-card-aujourdhui {
+  background: var(--info-gradient) !important;
+  color: white !important;
+}
+
+.stat-card-collectes .text-muted-foreground,
+.stat-card-points .text-muted-foreground,
+.stat-card-taux .text-muted-foreground,
+.stat-card-aujourdhui .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.graph-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.agent-profile-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.agent-profile-card .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.8);
+}

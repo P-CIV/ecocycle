@@ -1,0 +1,73 @@
+/* Styles pour les pages d'authentification */
+.auth-background {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #1a1a1a;
+}
+
+.auth-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to right, 
+    rgba(0, 0, 0, 0.7), 
+    rgba(0, 0, 0, 0.5)
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Styles pour le lien Créer un compte */
+.auth-card a {
+  text-decoration: none;
+}
+
+.auth-card .text-muted-foreground {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.auth-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+}
+
+/* Animation d'entrée */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.auth-animation {
+  animation: fadeInScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

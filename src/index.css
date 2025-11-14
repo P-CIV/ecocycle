@@ -1,0 +1,143 @@
+@import './styles/animations.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Définition du système de design. Toutes les couleurs, dégradés, polices, etc. doivent être définis ici.
+Toutes les couleurs DOIVENT être en HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 150 10% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 10% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 10% 15%;
+
+    --primary: 120 57% 37%;    /* #48972A */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 120 48% 13%;    /* #17310E */
+
+    --secondary: 145 20% 92%;
+    --secondary-foreground: 145 65% 35%;
+
+    --muted: 145 15% 95%;
+    --muted-foreground: 145 10% 45%;
+
+    --accent: 35 95% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 145 20% 88%;
+    --input: 145 20% 88%;
+    --ring: 145 65% 45%;
+
+    --radius: 0.75rem;
+
+    --gradient-primary: linear-gradient(135deg, #48972A, #17310E);
+    --gradient-accent: linear-gradient(135deg, #48972A, #17310E);
+    --gradient-hero: linear-gradient(135deg, #48972A, #17310E);
+    
+    --shadow-sm: 0 2px 8px hsl(145 65% 45% / 0.1);
+    --shadow-md: 0 4px 16px hsl(145 65% 45% / 0.15);
+    --shadow-lg: 0 8px 32px hsl(145 65% 45% / 0.2);
+    --shadow-glow: 0 0 40px hsl(145 70% 55% / 0.3);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 150 10% 15%;
+    --sidebar-primary: 145 65% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 145 20% 92%;
+    --sidebar-accent-foreground: 145 65% 35%;
+    --sidebar-border: 145 20% 88%;
+    --sidebar-ring: 145 65% 45%;
+  }
+
+  .dark {
+    --background: 150 20% 8%;
+    --foreground: 145 15% 95%;
+
+    --card: 150 18% 12%;
+    --card-foreground: 145 15% 95%;
+
+    --popover: 150 18% 12%;
+    --popover-foreground: 145 15% 95%;
+
+    --primary: 120 57% 37%;    /* #48972A */
+    --primary-foreground: 150 20% 8%;
+    --primary-glow: 120 48% 13%;    /* #17310E */
+
+    --secondary: 150 15% 18%;
+    --secondary-foreground: 145 70% 55%;
+
+    --muted: 150 15% 15%;
+    --muted-foreground: 145 15% 60%;
+
+    --accent: 35 95% 55%;
+    --accent-foreground: 150 20% 8%;
+
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 145 15% 95%;
+
+    --border: 150 15% 20%;
+    --input: 150 15% 20%;
+    --ring: 145 70% 55%;
+
+    --gradient-primary: linear-gradient(135deg, #48972A, #17310E);
+    --gradient-accent: linear-gradient(135deg, #48972A, #17310E);
+    --gradient-hero: linear-gradient(135deg, #48972A, #17310E);
+    
+    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 40px hsl(145 75% 65% / 0.4);
+
+    --sidebar-background: 150 18% 12%;
+    --sidebar-foreground: 145 15% 95%;
+    --sidebar-primary: 145 70% 55%;
+    --sidebar-primary-foreground: 150 20% 8%;
+    --sidebar-accent: 150 15% 18%;
+    --sidebar-accent-foreground: 145 70% 55%;
+    --sidebar-border: 150 15% 20%;
+    --sidebar-ring: 145 70% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-glow;
+  }
+
+  .hero-card {
+    @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-transparent p-6 backdrop-blur-sm border border-white/10;
+  }
+
+  .feature-card {
+    @apply p-6 rounded-2xl border border-border/50 bg-white/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .stat-card {
+    @apply p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-border/50 transition-all duration-300 hover:border-primary/50 hover:shadow-md;
+  }
+}

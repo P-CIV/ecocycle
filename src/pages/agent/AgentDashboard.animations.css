@@ -1,0 +1,83 @@
+.quick-summary-card,
+.timeline-card {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease;
+}
+
+.quick-summary-card:hover,
+.timeline-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Animation des icônes */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.icon-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Animation de la barre de progression */
+@keyframes growWidth {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.progress-bar-animate {
+  animation: growWidth 1.5s ease-out;
+}
+
+/* Effet de brillance sur les cartes */
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.card-shine:hover::before {
+  left: 100%;
+}
+
+/* Badges stylisés */
+.achievement-badge {
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  border-radius: 50%;
+  padding: 0.5rem;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+/* Timeline améliorée */
+.timeline-item {
+  position: relative;
+  padding-left: 2rem;
+  padding-bottom: 2rem;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, #4299e1, transparent);
+}

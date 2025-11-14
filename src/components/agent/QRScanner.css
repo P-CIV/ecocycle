@@ -1,0 +1,22 @@
+.qr-scanner-container {
+  @apply p-4;
+}
+
+.scan-frame {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+/* Animation pour le flash de scan */
+@keyframes scanFlash {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.scan-flash {
+  animation: scanFlash 2s infinite;
+}

@@ -1,0 +1,27 @@
+import { ReactNode } from "react";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { DashboardSidebar } from "./DashboardSidebar";
+import { DashboardHeader } from "./DashboardHeader";
+
+interface DashboardLayoutProps {
+  children: ReactNode;
+  userRole: "agent" | "admin";
+}
+
+export const DashboardLayout = ({ children, userRole }: DashboardLayoutProps) => {
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <DashboardSidebar userRole={userRole} />
+        
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader userRole={userRole} />
+          
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+};
