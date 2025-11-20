@@ -10,10 +10,10 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   const { currentUser, loading, userRole } = useAuth();
   const location = useLocation();
 
-  console.log('ProtectedRoute - CurrentUser:', currentUser?.email);
-  console.log('ProtectedRoute - UserRole:', userRole);
-  console.log('ProtectedRoute - Loading:', loading);
-  console.log('ProtectedRoute - Required Roles:', roles);
+  
+  
+  
+  
 
   if (loading) {
     return <div>Chargement...</div>;

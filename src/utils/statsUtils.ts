@@ -42,11 +42,12 @@ export const updateAgentStats = async (userId: string, newKg: number, typeDechet
     // ÉTAPE 3: Enregistrer la collecte dans la base
     const collecteDoc = await addDoc(collection(db, 'collectes'), {
       agentId: userId,
-      timestamp: serverTimestamp(),
+      date: serverTimestamp(),
       points: points,
-      poids: newKg,
-      type: typeDechet,
-      status: 'success'
+      kg: newKg,
+      type: typeDechet.charAt(0).toUpperCase() + typeDechet.slice(1).toLowerCase(),
+      status: 'success',
+      collecteId: `COL-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
     });
 
     // ÉTAPE 4: Enregistrer une activité (trace de la collecte)

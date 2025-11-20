@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link, Navigate } from "react-router-dom";
 import { 
-  TrendingUp, Award, Users, ArrowRight, Recycle, BarChart3, QrCode
+  TrendingUp, Award, Users, ArrowRight, Recycle, BarChart3, QrCode, Menu, X
 } from "lucide-react";
 import { LogoWithText } from "@/components/shared/Logo";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -13,11 +13,12 @@ import { SectionBackgroundWaves, SectionBackgroundBlobs, SectionBackgroundDiagon
 
 const Index = () => {
   const [api, setApi] = useState<any>();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, userRole, loading } = useAuth();
 
   // Rediriger les utilisateurs connectés vers leur tableau de bord
   if (!loading && currentUser && userRole) {
-    console.log("Utilisateur connecté, redirection vers:", userRole === "admin" ? "/admin" : "/agent");
+    
     return <Navigate to={userRole === "admin" ? "/admin" : "/agent"} replace />;
   }
   
@@ -49,7 +50,9 @@ const Index = () => {
             <a href="#benefits" className="text-foreground/80 hover:text-primary transition-colors">Avantages</a>
             <a href="#contact" className="text-foreground/80 hover:text-primary transition-colors">Contact</a>
           </nav>
-          <div className="flex gap-3">
+          
+          {/* Desktop buttons - hidden on mobile */}
+          <div className="hidden md:flex gap-3">
             <Link to="/login">
               <Button variant="outline">Connexion</Button>
             </Link>
@@ -59,7 +62,48 @@ const Index = () => {
               </Button>
             </Link>
           </div>
+
+          {/* Button du menu */}
+          <button
+            className="md:hidden p-2 rounded-lg hover:bg-accent/10 transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6 text-foreground" />
+            ) : (
+              <Menu className="h-6 w-6 text-foreground" />
+            )}
+          </button>
         </div>
+
+        {/* Mobile menu - shown when hamburger is clicked */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-sm"
+          >
+            <div className="container mx-auto px-4 py-4 space-y-3">
+              <nav className="flex flex-col gap-3 pb-3 border-b border-border/40">
+                <a href="#features" className="text-foreground/80 hover:text-primary transition-colors py-2">Fonctionnalités</a>
+                <a href="#benefits" className="text-foreground/80 hover:text-primary transition-colors py-2">Avantages</a>
+                <a href="#contact" className="text-foreground/80 hover:text-primary transition-colors py-2">Contact</a>
+              </nav>
+              <div className="flex flex-col gap-2 pt-2">
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">Connexion</Button>
+                </Link>
+                <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full bg-[linear-gradient(135deg,#48972A,#17310E)] hover:opacity-90 transition-opacity text-white">
+                    Inscription
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </motion.header>
 
       {/* Hero Section */}

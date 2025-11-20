@@ -13,7 +13,8 @@ import {
   LogOut,
   Menu,
   ClipboardList,
-  Shield
+  Shield,
+  Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LogoWithText } from '@/components/shared/Logo';
@@ -67,6 +68,12 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       path: '/admin/access'
     },
     {
+      title: 'Distribution de bonus',
+      description: 'Récompenser les performances',
+      icon: <Coins className="w-5 h-5" />,
+      path: '/admin/distribute-points'
+    },
+    {
       title: 'Paramètres système',
       description: 'Configuration globale',
       icon: <Settings className="w-5 h-5" />,
@@ -87,10 +94,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     <div className="min-h-screen bg-background">
       {/* Header Mobile */}
       {isMobile && (
-        <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 border-b z-40 px-4 flex items-center shadow-lg">
+        <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b z-40 px-4 flex items-center shadow-md">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
             aria-label="Menu"
           >
             <Menu className="w-6 h-6" />

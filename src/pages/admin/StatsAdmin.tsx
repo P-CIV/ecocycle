@@ -45,12 +45,10 @@ const StatsAdmin = () => {
     const agentsRef = collection(db, 'agents');
     const collectesRef = collection(db, 'collectes');
 
-    const unsubAgents = onSnapshot(agentsRef, () => { console.log('👥 Agents updated');
-      updateStats();
+    const unsubAgents = onSnapshot(agentsRef, () => {updateStats();
     });
 
-    const unsubCollectes = onSnapshot(collectesRef, () => { console.log('♻️ Collectes updated');
-      updateStats();
+    const unsubCollectes = onSnapshot(collectesRef, () => {updateStats();
     });
 
     // Initial fetch
@@ -123,8 +121,7 @@ const StatsAdmin = () => {
           typeCount[type] = (typeCount[type] || 0) + 1;
 
           totalKg += kg;
-          totalPoints += points; console.log(`📈 Collecte: ${type} - ${kg}kg`);
-        } catch (e) { console.error('❌ Error processing collecte:', e, data);
+          totalPoints += points;} catch (e) { console.error('❌ Error processing collecte:', e, data);
         }
       });
 
@@ -157,17 +154,7 @@ const StatsAdmin = () => {
         .map(([type, count]) => ({
           type,
           value: Math.round((count / total) * 100),
-        })); console.log('🏆 Final Stats:', {
-        totalCollectes: collectesSnapshot.size,
-        totalAgents: agentsSnapshot.size,
-        totalKg,
-        totalPoints,
-        croissance,
-        monthlyDataLength: collectesParMois.length,
-        typeDataLength: repartitionTypes.length,
-      });
-
-      setStats({
+        }));setStats({
         totalCollectes: collectesSnapshot.size,
         totalAgents: agentsSnapshot.size,
         totalPoints,

@@ -87,7 +87,7 @@ async function initAgentsCollection() {
   const snapshot = await getDocs(agentsRef);
   
   if (snapshot.empty) {
-    console.log('Initialisation de la collection agents...');
+    
     const defaultAgent = {
       name: 'Agent Test',
       email: 'test@ecocycle.ci',
@@ -134,33 +134,33 @@ export async function initializeFirestore() {
     const isEmpty = await isCollectionEmpty('parametres');
     
     if (isEmpty) {
-      console.log('Première initialisation de Firestore...');
+      
       
       // Exécution séquentielle des initialisations
       await initSystemParams();
-      console.log('Paramètres système initialisés');
+      
       
       await initZones();
-      console.log('Zones géographiques initialisées');
+      
       
       await initStats();
-      console.log('Statistiques globales initialisées');
+      
 
       await initAgentsCollection();
-      console.log('Collection agents initialisée');
+      
 
       await initObjectifs();
-      console.log('Collection objectifs initialisée');
       
-      console.log('Initialisation de Firestore terminée avec succès');
+      
+      
     } else {
-      console.log('Vérification des collections manquantes...');
+      
       // Vérifier et initialiser les collections même si la base n'est pas vide
       const collections = ['agents', 'objectifs', 'parametres', 'zones', 'statistiques'];
       for (const col of collections) {
         const snapshot = await getDocs(collection(db, col));
         if (snapshot.empty) {
-          console.log(`Collection ${col} manquante, initialisation...`);
+          
           switch(col) {
             case 'agents':
               await initAgentsCollection();

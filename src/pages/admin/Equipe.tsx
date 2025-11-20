@@ -35,7 +35,7 @@ const Equipe = () => {
           <h2 className="text-3xl font-bold">👥 Gestion de l'Équipe</h2>
           <p className="text-purple-100 mt-1">Gérez vos agents et suivez leurs performances</p>
         </div>
-        <Button className="shadow-elegant bg-white text-purple-600 hover:bg-purple-50">
+        <Button className="shadow-lg bg-gradient-to-r from-emerald-400 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-600 font-semibold">
           <Users className="mr-2 h-4 w-4" />
           Nouvel Agent
         </Button>

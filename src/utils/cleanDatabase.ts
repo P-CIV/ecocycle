@@ -3,8 +3,6 @@ import { collection, getDocs, query, where, deleteDoc, doc, updateDoc } from 'fi
 
 export const cleanDatabase = async () => {
     try {
-        console.log('Début du nettoyage de la base de données...');
-        
         // Collections à nettoyer
         const collections = [
             'collectes',
@@ -15,8 +13,6 @@ export const cleanDatabase = async () => {
         ];
 
         for (const collectionName of collections) {
-            console.log(`Nettoyage de la collection ${collectionName}...`);
-            
             const collectionRef = collection(db, collectionName);
             
             // Recherche des documents de test
@@ -40,11 +36,8 @@ export const cleanDatabase = async () => {
             
             for (const q of queries) {
                 const snapshot = await getDocs(q);
-                console.log(`Trouvé ${snapshot.size} documents de test dans ${collectionName}`);
-                
                 for (const document of snapshot.docs) {
                     await deleteDoc(doc(db, collectionName, document.id));
-                    console.log(`Document supprimé: ${document.id}`);
                 }
             }
 
@@ -57,7 +50,6 @@ export const cleanDatabase = async () => {
                     const data = statDoc.data();
                     if (data.valeur < 0 || data.valeur > 1000000) {
                         await deleteDoc(statDoc.ref);
-                        console.log(`Statistique incohérente supprimée: ${statDoc.id}`);
                     }
                 }
             }
@@ -75,8 +67,6 @@ export const cleanDatabase = async () => {
                 }
             }
         }
-
-        console.log('Nettoyage de la base de données terminé avec succès');
         return true;
     } catch (error) {
         console.error('Erreur lors du nettoyage de la base de données:', error);

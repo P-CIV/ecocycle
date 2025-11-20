@@ -108,25 +108,32 @@ export const useAdminDashboardStats = () => {
               return sum + (typeof val === 'number' ? val : 0);
             }, 0);
             return { 
-              name: a.nom || a.name || 'Unknown', collectes: kg, 
+              name: a.nom || a.name || 'Unknown', 
+              collectes: kg, 
               points: coll.reduce((sum, c) => sum + (c.points || 0), 0) 
             }; 
           })
           .filter(x => x.collectes > 0)
           .sort((a, b) => b.collectes - a.collectes)
-          .slice(0, 5); console.log('🏆 Top agents:', top);
+          .slice(0, 5); 
+        console.log('🏆 Top agents:', top);
         
-        // Répartition par type
-        const types: Record<string, number> = {}; collectesData.forEach(c => { 
-          const t = c.type || 'Autre'; 
+        // Répartition par type - normaliser les types en minuscules
+        const types: Record<string, number> = {}; 
+        collectesData.forEach(c => { 
+          const t = (c.type || 'autre').toLowerCase(); 
           const val = c.kg || c.quantite || 0;
           types[t] = (types[t] || 0) + (typeof val === 'number' ? val : 0);
         });
         const total = Object.values(types).reduce((a, b) => a + b, 0);
-        const dist = total > 0 ? Object.entries(types).map(([type, val]) => ({ 
-          type, 
-          valeur: Math.round((val / total) * 1000) / 10 
-        })) : []; console.log('♻️ Distribution:', dist);
+        const dist = total > 0 ? Object.entries(types)
+          .filter(([_, val]) => val > 0) // ✅ Filtrer les types à 0%
+          .map(([type, val]) => ({ 
+            type: type.charAt(0).toUpperCase() + type.slice(1), 
+            valeur: Math.round((val / total) * 1000) / 10 
+          }))
+          .sort((a, b) => b.valeur - a.valeur) : []; 
+        console.log('♻️ Distribution:', dist);
         
         // Agents actifs
         const active = agentsData.filter(a => { 

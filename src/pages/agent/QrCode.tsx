@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { QrCode as QrCodeIcon, Download, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import QRCode from "react-qr-code";
@@ -10,6 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { updateAgentStats } from "@/utils/statsUtils";
 import { useToast } from "@/components/ui/use-toast";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+
+interface HistoriqueQR {
+  id: string;
+  date: string;
+  kg: number;
+  points: number;
+  type: string;
+}
 
 const QrCode = () => {
   const [poids, setPoids] = useState<string>("");
@@ -17,16 +27,73 @@ const QrCode = () => {
   const [qrGenere, setQrGenere] = useState<boolean>(false);
   const [points, setPoints] = useState<number>(0);
   const [currentId, setCurrentId] = useState<string>("");
-  const [historique, setHistorique] = useState([
-    { id: "COL-2025-156", date: "2025-06-24 14:30", kg: 25, points: 250, type: "Plastique" },
-    { id: "COL-2025-155", date: "2025-06-24 11:15", kg: 18, points: 180, type: "Papier" },
-    { id: "COL-2025-154", date: "2025-06-23 16:45", kg: 32, points: 320, type: "Verre" },
-  ]);
+  const [historique, setHistorique] = useState<HistoriqueQR[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
 
   const qrCodeRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { toast } = useToast();
+
+  // Fonction pour recharger l'historique
+  const loadHistorique = async (showLoading: boolean = true) => {
+    if (!currentUser?.uid) {
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    try {
+      if (showLoading) setIsLoadingHistory(true);
+      const collectesRef = collection(db, 'collectes');
+      // Requête simple sans orderBy (pour éviter les index Firestore)
+      const q = query(
+        collectesRef,
+        where('agentId', '==', currentUser.uid)
+      );
+
+      const snapshot = await getDocs(q);
+      const collectes: HistoriqueQR[] = snapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          const date = data.date instanceof Timestamp 
+            ? data.date.toDate() 
+            : new Date(data.date);
+
+          const historique = {
+            id: data.collecteId || `COL-${doc.id.substring(0, 6).toUpperCase()}`,
+            date: date.toLocaleString('fr-FR', { 
+              year: 'numeric', 
+              month: '2-digit', 
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            dateObj: date,
+            kg: data.kg || 0,
+            points: data.points || 0,
+            type: data.type || 'Déchet'
+          };
+          return historique;
+        })
+        // Trier côté client (plus récent en premier)
+        .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
+        // Limiter à 10
+        .slice(0, 10)
+        // Nettoyer l'objet pour le state
+        .map(({ dateObj, ...rest }) => rest);
+      setHistorique(collectes);
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'historique:', error);
+      setHistorique([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Charger l'historique au montage du composant
+  useEffect(() => {
+    loadHistorique();
+  }, [currentUser?.uid]);
 
   const calculerPoints = (kg: number) => kg * 10;
 
@@ -54,25 +121,23 @@ const QrCode = () => {
         
         // Mise à jour des statistiques de l'agent
         const statsResult = await updateAgentStats(currentUser.uid, poidsNumber, typeDechet);
-        
-        const nouvelleCollecte = {
-          id: newId,
-          date: new Date().toLocaleString('fr-FR'),
-          kg: poidsNumber,
-          points: statsResult.points,
-          type: typeDechet
-        };
 
         setPoints(statsResult.points);
         setCurrentId(newId);
-        setHistorique(prev => [nouvelleCollecte, ...prev.slice(0, 4)]);
         setQrGenere(true);
+
+        // Attendre un peu que Firestore synchronise
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Recharger l'historique depuis Firestore (sans afficher le loader)
+        await loadHistorique(false);
 
         toast({
           title: "Succès !",
           description: `Vous avez gagné ${statsResult.points} points pour cette collecte !`,
         });
-      } catch (error) { console.error("Erreur lors de la génération du QR code:", error);
+      } catch (error) {
+        console.error("Erreur lors de la génération du QR code:", error);
         toast({
           title: "Erreur",
           description: "Une erreur est survenue lors de la génération du QR code",
@@ -287,35 +352,52 @@ const QrCode = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[400px] overflow-auto pr-2">
-                <div className="space-y-3">
-                  {historique.map((qr, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-orange-100 to-amber-100 hover:from-orange-200 hover:to-amber-200 transition-all border border-orange-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-lg flex items-center justify-center text-white shadow-md">
-                          <QrCodeIcon className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-orange-900">{qr.id}</p>
-                          <p className="text-xs text-orange-700">{qr.date}</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-orange-800">
-                              {qr.kg} kg - {qr.type}
-                            </p>
-                            <span className="text-xs font-semibold text-white bg-gradient-to-r from-orange-400 to-amber-500 px-2 py-0.5 rounded-full">
-                              +{qr.points} pts
-                            </span>
+                {isLoadingHistory ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400 mx-auto mb-4"></div>
+                      <p className="text-orange-700">Chargement de l'historique...</p>
+                    </div>
+                  </div>
+                ) : historique.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <QrCodeIcon className="h-12 w-12 text-orange-300 mx-auto mb-4" />
+                      <p className="text-orange-700 font-medium">Aucun QR code généré</p>
+                      <p className="text-orange-600 text-sm">Vos collectes apparaîtront ici</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {historique.map((qr, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-orange-100 to-amber-100 hover:from-orange-200 hover:to-amber-200 transition-all border border-orange-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-lg flex items-center justify-center text-white shadow-md">
+                            <QrCodeIcon className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-orange-900">{qr.id}</p>
+                            <p className="text-xs text-orange-700">{qr.date}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-orange-800">
+                                {qr.kg} kg - {qr.type}
+                              </p>
+                              <span className="text-xs font-semibold text-white bg-gradient-to-r from-orange-400 to-amber-500 px-2 py-0.5 rounded-full">
+                                +{qr.points} pts
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <Button variant="ghost" size="sm" className="text-orange-700 hover:bg-orange-200">
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-orange-700 hover:bg-orange-200">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -357,3 +439,4 @@ const QrCode = () => {
 };
 
 export default QrCode;
+

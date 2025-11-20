@@ -10,7 +10,8 @@ import {
   BarChart, 
   Repeat, 
   LogOut,
-  Menu
+  Menu,
+  Coins
 } from 'lucide-react';
 import { LogoWithText } from "@/components/shared/Logo";
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,12 @@ export const AgentLayout = ({ children }: AgentLayoutProps) => {
       description: 'Analyser vos performances',
       icon: <BarChart className="w-5 h-5" />,
       path: '/agent/stats'
+    },
+    {
+      title: 'Retrait de Bonus',
+      description: 'Convertir vos points en argent',
+      icon: <Coins className="w-5 h-5" />,
+      path: '/agent/rewards'
     }
   ];
 

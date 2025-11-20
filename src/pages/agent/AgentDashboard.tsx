@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { testFirebaseConnection } from '@/utils/firebaseTest';
 
 const AgentDashboard = () => {
-  const { user, userRole, loading: authLoading } = useAuth();
+  const { user, userRole, loading: authLoading, displayName } = useAuth();
   const { stats, loading: statsLoading, error: statsError } = useRealtimeStats();
 
   console.log('AgentDashboard - Rendu initial');
@@ -69,7 +69,7 @@ const AgentDashboard = () => {
               </div>
               <div>
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Bienvenue, {user?.email?.split('@')[0] || 'Agent'}
+                  Bienvenue, {displayName || user?.email?.split('@')[0] || 'Agent'}
                 </h2>
                 <p className="text-muted-foreground">
                   Tableau de bord de vos activités

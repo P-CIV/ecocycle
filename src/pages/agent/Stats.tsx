@@ -229,7 +229,7 @@ const Stats = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={stats?.evolutionCollectes?.slice(-2) || []}>
+                <BarChart data={stats?.comparaisonGraphique || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="periode" stroke="rgba(255,255,255,0.7)" />
                   <YAxis stroke="rgba(255,255,255,0.7)" />

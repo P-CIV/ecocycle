@@ -38,8 +38,7 @@ export const initAgentData = async (agentData: AgentInitData) => {
       historiqueCollectes: [],
       historiquePoints: [],
       miseAJour: new Date()
-    }); console.log(`✅ Données initiales créées pour l'agent ${agentData.nom}`);
-    return true;
+    });return true;
   } catch (error) { console.error('Erreur lors de l\'initialisation des données agent:', error);
     return false;
   }

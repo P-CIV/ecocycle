@@ -17,12 +17,10 @@ export function useDebugFirebase() {
       // Test agents
       const agentsRef = collection(db, 'agents');
       unsubscribeAgents = onSnapshot( agentsRef,
-        (snapshot) => { console.log('✓ Agents snapshot reçu:', snapshot.size);
-          const agentsData = snapshot.docs.map(doc => ({
+        (snapshot) => {const agentsData = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-          })); console.log('Agents data:', agentsData);
-          setDebug(prev => ({
+          }));setDebug(prev => ({
             ...prev, agentsCount: snapshot.size, agents: agentsData
           }));
         },
@@ -37,12 +35,10 @@ export function useDebugFirebase() {
       // Test collectes
       const collectesRef = collection(db, 'collectes');
       unsubscribeCollectes = onSnapshot( collectesRef,
-        (snapshot) => { console.log('✓ Collectes snapshot reçu:', snapshot.size);
-          const collectesData = snapshot.docs.map(doc => ({
+        (snapshot) => {const collectesData = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-          })); console.log('Collectes data:', collectesData);
-          setDebug(prev => ({
+          }));setDebug(prev => ({
             ...prev, collectesCount: snapshot.size, collectes: collectesData
           }));
         },
@@ -69,3 +65,4 @@ export function useDebugFirebase() {
 
   return debug;
 }
+

@@ -4,7 +4,7 @@ import { initializeFirestore } from './initFirestore';
 // Cette fonction s'exécute seulement si l'utilisateur connecté est admin
 export const setupDatabase = async () => {
   try {
-    console.log('Démarrage de l\'initialisation de la base de données...');
+    
     
     // Vérifier que l'utilisateur connecté est admin
     const { auth } = await import('@/lib/firebase');
@@ -21,7 +21,7 @@ export const setupDatabase = async () => {
 
     // Lancer l'initialisation
     await initializeFirestore();
-    console.log('Base de données initialisée avec succès');
+    
     return true;
   } catch (error) {
     console.error('Erreur lors de l\'initialisation:', error);

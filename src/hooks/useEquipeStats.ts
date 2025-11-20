@@ -42,7 +42,7 @@ export const useEquipeStats = () => {
     setError(null);
 
     try {
-      const agentsRef = collection(db, 'agents');
+      const agentsRef = collection(db, 'users');
       
       const unsubscribe = onSnapshot(agentsRef, (snapshot) => {
         try {
@@ -53,54 +53,68 @@ export const useEquipeStats = () => {
           snapshot.forEach((doc) => {
             const data = doc.data();
             
+            // Filtrer seulement les agents (role = 'agent')
+            if (data.role !== 'agent') {
+              return;
+            }
+            
             // Normaliser les données (gérer les variantes de noms de champs)
             const agent: Agent = {
               id: doc.id,
-              nom: data.nom || data.name || 'Inconnu',
+              nom: data.displayName || data.nom || data.name || 'Inconnu',
               email: data.email || '',
               phone: data.phone || data.tel || '',
               tel: data.tel || data.phone || '',
               points: typeof data.points === 'number' ? data.points : 0,
-              totalCollectes: typeof data.totalCollectes === 'number' ? data.totalCollectes : (typeof data.collectes === 'number' ? data.collectes : 0), collectes: typeof data.collectes === 'number' ? data.collectes : (typeof data.totalCollectes === 'number' ? data.totalCollectes : 0),
+              totalCollectes: typeof data.totalCollectes === 'number' ? data.totalCollectes : (typeof data.collectes === 'number' ? data.collectes : 0), 
+              collectes: typeof data.collectes === 'number' ? data.collectes : (typeof data.totalCollectes === 'number' ? data.totalCollectes : 0),
               totalKg: typeof data.totalKg === 'number' ? data.totalKg : (typeof data.kg === 'number' ? data.kg : 0),
               kg: typeof data.kg === 'number' ? data.kg : (typeof data.totalKg === 'number' ? data.totalKg : 0),
               zone: data.zone || 'N/A',
-              status: data.status || data.statut || 'actif',
-              statut: data.statut || data.status || 'actif',
-              dateInscription: data.dateInscription,
-              dernièreActivité: data.dernièreActivité,
+              status: data.status || data.statut || 'active',
+              statut: data.statut || data.status || 'active',
+              dateInscription: data.createdAt,
+              dernièreActivité: data.lastLogin,
               avatar: data.avatar,
-              initiales: data.initiales || generateInitiales(data.nom || data.name || 'Inconnu'),
-            }; agentsList.push(agent);
+              initiales: data.initiales || generateInitiales(data.displayName || data.nom || data.name || 'Inconnu'),
+            }; 
+            agentsList.push(agent);
             totalPoints += agent.points || 0;
             
             // Compter les agents actifs
-            if ((agent.statut || agent.status) === 'actif') { agentsActifs++;
+            if ((agent.statut || agent.status) === 'active' || (agent.statut || agent.status) === 'actif') { 
+              agentsActifs++;
             }
           });
 
-          // Trier par points décroissants agentsList.sort((a, b) => (b.points || 0) - (a.points || 0));
+          // Trier par points décroissants 
+          agentsList.sort((a, b) => (b.points || 0) - (a.points || 0));
 
           const pointsMoyens = agentsList.length > 0 ? Math.round(totalPoints / agentsList.length) : 0;
 
-          setStats({ agents: agentsList,
-            totalAgents: agentsList.length, agentsActifs,
+          setStats({ 
+            agents: agentsList,
+            totalAgents: agentsList.length, 
+            agentsActifs,
             pointsMoyens,
             totalPoints,
           });
 
           setLoading(false);
-        } catch (err) { console.error('❌ Erreur lors du traitement des agents:', err);
+        } catch (err) { 
+          console.error('❌ Erreur lors du traitement des agents:', err);
           setError(err instanceof Error ? err : new Error('Erreur inconnue'));
           setLoading(false);
         }
-      }, (error) => { console.error('❌ Erreur Firebase lors de la lecture des agents:', error);
+      }, (error) => { 
+        console.error('❌ Erreur Firebase lors de la lecture des agents:', error);
         setError(error);
         setLoading(false);
       });
 
       return () => unsubscribe();
-    } catch (err) { console.error('❌ Erreur lors de la configuration du listener:', err);
+    } catch (err) { 
+      console.error('❌ Erreur lors de la configuration du listener:', err);
       setError(err instanceof Error ? err : new Error('Erreur inconnue'));
       setLoading(false);
     }

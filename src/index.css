@@ -4,9 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Définition du système de design. Toutes les couleurs, dégradés, polices, etc. doivent être définis ici.
-Toutes les couleurs DOIVENT être en HSL.
-*/
 
 @layer base {
   :root {
@@ -29,8 +26,9 @@ Toutes les couleurs DOIVENT être en HSL.
     --muted: 145 15% 95%;
     --muted-foreground: 145 10% 45%;
 
-    --accent: 35 95% 55%;
+    --accent: 120 57% 37%;
     --accent-foreground: 0 0% 100%;
+    --accent-light: 140 70% 50%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -77,11 +75,11 @@ Toutes les couleurs DOIVENT être en HSL.
     --secondary: 150 15% 18%;
     --secondary-foreground: 145 70% 55%;
 
-    --muted: 150 15% 15%;
-    --muted-foreground: 145 15% 60%;
+    --muted: 145 15% 15%;
+    --muted-foreground: 145 10% 60%;
 
-    --accent: 35 95% 55%;
-    --accent-foreground: 150 20% 8%;
+    --accent: 140 70% 50%;
+    --accent-foreground: 0 0% 10%;
 
     --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 145 15% 95%;

@@ -21,6 +21,7 @@ import AgentDashboard from "./pages/agent/AgentDashboard";
 import Convertisseur from "./pages/agent/Convertisseur";
 import QrCode from "./pages/agent/QrCode";
 import AgentStats from "./pages/agent/Stats";
+import Rewards from "./pages/agent/Rewards";
 
 // Pages Admin
 import AdminDashboard from "./pages/AdminDashboard";
@@ -30,6 +31,7 @@ import Tendances from "./pages/admin/Tendances";
 import Validation from "./pages/admin/Validation";
 import Access from "./pages/admin/Access";
 import Settings from "./pages/admin/Settings";
+import DistributePoints from "./pages/admin/DistributePoints";
 
 // Layouts spécifiques
 import { AgentLayout } from "./components/agent/AgentLayout";
@@ -54,17 +56,17 @@ const App = () => {
         const { testFirebaseConnection } = await import('./utils/testFirebase');
         const isConnected = await testFirebaseConnection();
         
-        if (isConnected) { console.log('✓ Firebase est connecté');
+        if (isConnected) { 
           
           // Étape 3: Vérifier si l'utilisateur est un admin
           const currentUser = auth.currentUser;
-          if (currentUser?.email?.endsWith('@ecocycle.ci')) { console.log('Admin détecté, initialisation de la base de données...');
+          if (currentUser?.email?.endsWith('@ecocycle.ci')) { 
             try {
-              await setupDatabase(); console.log('✓ Base de données prête');
+              await setupDatabase(); 
             } catch (dbError) { console.error('Erreur lors de l\'initialisation de la base:', dbError);
               // L'app continue même si l'initialisation échoue
             }
-          } else { console.log('Utilisateur normal, pas d\'initialisation nécessaire');
+          } else { 
           }
         } else { console.error('Erreur: Firebase n\'est pas accessible');
         }
@@ -129,6 +131,13 @@ const App = () => {
                     </AgentLayout>
                   </ProtectedRoute>
                 } />
+                <Route path="/agent/rewards" element={
+                  <ProtectedRoute roles={["agent"]}>
+                    <AgentLayout>
+                      <Rewards />
+                    </AgentLayout>
+                  </ProtectedRoute>
+                } />
                 
                 {/* SECTION 4: Routes des ADMINS (gestion et statistiques) */}
 
@@ -178,6 +187,13 @@ const App = () => {
                   <ProtectedRoute roles={["admin"]}>
                     <AdminLayout>
                       <Settings />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/distribute-points" element={
+                  <ProtectedRoute roles={["admin"]}>
+                    <AdminLayout>
+                      <DistributePoints />
                     </AdminLayout>
                   </ProtectedRoute>
                 } />

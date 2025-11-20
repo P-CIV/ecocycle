@@ -198,20 +198,22 @@ const AdminDashboard = () => {
             <CardTitle className="text-2xl text-purple-900">♻️ Distribution par Type de Déchet</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={350}>
               <PieChart>
                 <Pie
                   data={stats.repartitionTypes}
-                  cx="50%"
+                  cx="45%"
                   cy="50%"
-                  labelLine={false}
+                  labelLine={true}
                   label={(props: PieLabelRenderProps) => {
                     const payload = props.payload as { type: string; valeur: number };
                     return `${payload.type}: ${payload.valeur.toFixed(1)}%`;
                   }}
-                  outerRadius={80}
+                  outerRadius={100}
+                  innerRadius={0}
                   fill="#8884d8"
                   dataKey="valeur"
+                  paddingAngle={2}
                 >
                   {stats.repartitionTypes.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -222,6 +224,8 @@ const AdminDashboard = () => {
                     backgroundColor: "rgba(255,255,255,0.95)",
                     border: "2px solid #a855f7",
                     borderRadius: "var(--radius)",
+                    padding: "8px 12px",
+                    fontSize: "14px",
                   }}
                 />
               </PieChart>

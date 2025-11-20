@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loading: boolean;
   userRole: string | null;
+  displayName: string | null;
 }
 
 interface AuthProviderProps {
@@ -38,6 +39,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubscribe: () => void;
@@ -45,7 +47,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const setupAuthListener = async () => {
       // Écouter les changements de l'utilisateur connecté
       unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log("L'utilisateur a changé:", user?.email);
+        
         setCurrentUser(user);
         
         if (user) {
@@ -57,7 +59,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              console.log("Données trouvées dans la base:", userData);
+              
+              
+              // Récupérer le displayName
+              setDisplayName(userData.displayName || null);
               
               // Si c'est un email admin, forcer le rôle admin
               if (isAdminEmail) {
@@ -67,17 +72,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   lastLogin: new Date().toISOString()
                 }, { merge: true });
                 setUserRole('admin');
-                console.log("Admin reconnu:", user.email);
+                
               } else {
                 // Sinon, utiliser le rôle sauvegardé
                 setUserRole(userData.role);
               }
-              console.log("Rôle défini:", isAdminEmail ? 'admin' : userData.role);
+              
             } else {
               // NOUVEL utilisateur: créer un document dans Firestore
               const defaultRole = isAdminEmail ? 'admin' : 'agent';
               
-              console.log("Nouvel utilisateur, création du profil avec rôle:", defaultRole);
+              
               try {
                 await setDoc(doc(db, 'users', user.uid), {
                   email: user.email,
@@ -87,21 +92,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   status: 'active'
                 });
                 setUserRole(defaultRole);
+                setDisplayName(null);
               } catch (createError) {
                 console.warn("Erreur lors de la création du profil:", createError);
                 // Continuer avec le rôle par défaut
                 setUserRole('agent');
+                setDisplayName(null);
               }
             }
           } catch (error: any) {
             console.warn("Erreur Firestore, utilisation du rôle par défaut:", error);
             if (error.code === 'unavailable' || error.code === 'failed-precondition') {
-              console.log("Erreur de connexion, on utilise un rôle temporaire");
+              
             }
           }
         } else {
-          console.log("Utilisateur déconnecté");
+          
           setUserRole(null);
+          setDisplayName(null);
         }
         
         setLoading(false);
@@ -133,19 +141,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // ÉTAPE 1: Créer le compte dans Firebase Authentication
-      console.log("Création du compte utilisateur...");
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         .catch((error) => {
           console.error("Erreur lors de la création du compte:", error);
           throw error;
         });
 
-      console.log("Compte créé avec succès");
+      
       const user = userCredential.user;
       
       // ÉTAPE 2: Créer le profil utilisateur dans Firestore
       try {
-        console.log("Création du profil dans la base de données...");
+        
         const userDoc = doc(db, 'users', user.uid);
         const userData = {
           email,
@@ -155,12 +163,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           status: 'active',
           displayName: name,
           phone: phone,
-          zone: zone
+          zone: zone,
+          points: 0,
+          pointsRetires: 0,
+          totalCollectes: 0,
+          totalKg: 0,
+          niveau: 'Débutant'
         };
 
         // Sauvegarder le profil
         await setDoc(userDoc, userData);
-        console.log("Document utilisateur créé avec succès:", userData);
+        
 
         // Initialiser les données de l'agent
         const { initAgentData } = await import('@/utils/initAgentData');
@@ -171,14 +184,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           phone: phone,
           zone: zone
         });
-        console.log("Données agent initialisées avec succès");
+        
       } catch (firestoreError: any) {
         console.error("Erreur lors de la création du document Firestore:", firestoreError);
         
         // Tenter de supprimer le compte Firebase si la création Firestore échoue
         try {
           await user.delete();
-          console.log("Compte d'authentification supprimé suite à l'erreur Firestore");
+          
         } catch (deleteError) {
           console.error("Impossible de supprimer le compte d'authentification:", deleteError);
         }
@@ -187,7 +200,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       setUserRole("agent");
-      console.log("Rôle mis à jour localement: agent");
+      
     } catch (error: any) {
       console.error("Erreur détaillée lors de l'inscription:", {
         code: error.code,
@@ -216,10 +229,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
-      console.log("Tentative de connexion avec:", email);
+      
       
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Authentification réussie pour:", result.user.email);
+      
       
       try {
         const userRef = doc(db, 'users', result.user.uid);
@@ -230,7 +243,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          console.log("Données utilisateur récupérées:", userData);
+          
           
           // Pour les emails @ecocycle.ci, toujours mettre à jour vers admin
           if (isAdminEmail) {
@@ -240,7 +253,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               lastLogin: new Date().toISOString()
             };
             
-            console.log("Mise à jour du rôle admin pour:", email);
+            
             await setDoc(userRef, updateData);
             setUserRole('admin');
           } else {
@@ -256,7 +269,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             console.warn("Impossible de mettre à jour la dernière connexion:", updateError);
           }
         } else {
-          console.log("Création d'un nouveau document utilisateur");
+          
           try {
             await setDoc(doc(db, 'users', result.user.uid), {
               email: result.user.email,
@@ -309,7 +322,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signup,
     logout,
     loading,
-    userRole
+    userRole,
+    displayName
   };
 
   return (

@@ -86,8 +86,6 @@ export const cleanOldQRCodes = async (userId: string) => {
         const snapshot = await getDocs(q);
         const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
-
-        console.log('Anciens QR codes nettoyés avec succès');
         return true;
     } catch (error) {
         console.error('Erreur lors du nettoyage des QR codes:', error);
