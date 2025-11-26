@@ -134,9 +134,11 @@ const Index = () => {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="text-lg px-8 h-14">
-                  Voir la démo
-                </Button>
+                <Link to="/demo">
+                  <Button size="lg" variant="outline" className="text-lg px-8 h-14">
+                    Voir la démo
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -174,6 +176,7 @@ const Index = () => {
           </div>
         </div>
       </section>
+
       {/* Features Section */}
       <section id="features" className="py-24 bg-muted/30 relative overflow-hidden">
         <SectionBackgroundWaves />
@@ -327,7 +330,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <LogoWithText size="sm" />
-            <p className="text-muted-foreground">© 2025 Écocycle. Projet génie-DigiFemmes. Tous droits réservés.</p>
+            <p className="text-muted-foreground">© 2025 Écocycle • Tous droits réservés</p>
             <div className="flex gap-6">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Conditions</a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Confidentialité</a>

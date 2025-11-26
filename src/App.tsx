@@ -15,6 +15,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import Demo from "./pages/Demo";
 
 // Pages Agent
 import AgentDashboard from "./pages/agent/AgentDashboard";
@@ -91,6 +92,7 @@ const App = () => {
                 {/* SECTION 1: Routes publiques - accessibles sans connexion */}
 
                 <Route path="/" element={<Index />} />
+                <Route path="/demo" element={<Demo />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 

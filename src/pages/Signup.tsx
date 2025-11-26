@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Phone, ArrowRight, MapPin } from "lucide-react";
+import { Mail, Lock, User, Phone, ArrowRight, MapPin, Check, X } from "lucide-react";
 import { LogoWithText } from "@/components/shared/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,17 +19,48 @@ const Signup = () => {
     password: "",
     confirmPassword: "",
     zone: "",
-    role: "agent" // Par défaut, le rôle est "agent"
+    role: "agent"
   });
   const [loading, setLoading] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { toast } = useToast();
 
+  // Critères de validation du mot de passe
+  const validatePassword = (pwd: string) => {
+    const errors: string[] = [];
+    if (pwd.length < 8) errors.push("Au moins 8 caractères");
+    if (!/[A-Z]/.test(pwd)) errors.push("Au moins une majuscule");
+    if (!/[a-z]/.test(pwd)) errors.push("Au moins une minuscule");
+    if (!/[0-9]/.test(pwd)) errors.push("Au moins un chiffre");
+    if (!/[!@#$%^&*]/.test(pwd)) errors.push("Au moins un caractère spécial (!@#$%^&*)");
+    return errors;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Valider le mot de passe en temps réel
+    if (name === "password") {
+      setPasswordErrors(validatePassword(value));
+    }
   };
 
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  // Vérifier si au moins 2 critères du mot de passe sont remplis
+  const isPasswordValid = () => {
+    if (!formData.password || formData.password.length < 6) return false;
+    
+    let criteriaCount = 0;
+    if (/[A-Z]/.test(formData.password)) criteriaCount++;
+    if (/[a-z]/.test(formData.password)) criteriaCount++;
+    if (/[0-9]/.test(formData.password)) criteriaCount++;
+    if (/[!@#$%^&*]/.test(formData.password)) criteriaCount++;
+    
+    return criteriaCount >= 2;
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +71,7 @@ const Signup = () => {
       fields: Boolean(formData.email && formData.password && formData.name && formData.phone && formData.zone),
       email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email),
       phone: /^\+225[0-9]{10}$/.test(formData.phone),
-      password_strength: formData.password.length >= 6,
+      password_strength: isPasswordValid(),
       zone: formData.zone !== ""
     };
 
@@ -61,7 +92,11 @@ const Signup = () => {
       return;
     }
     if (!validations.password_strength) {
-      toast({ title: "Erreur", description: "Le mot de passe doit contenir au moins 6 caractères", variant: "destructive" });
+      toast({ 
+        title: "Erreur", 
+        description: "Le mot de passe doit contenir au moins 6 caractères et remplir au moins 2 critères (majuscule, minuscule, chiffre, caractère spécial)", 
+        variant: "destructive" 
+      });
       return;
     }
 
@@ -69,9 +104,6 @@ const Signup = () => {
     toast({ title: "Création du compte...", description: "Veuillez patienter" });
 
     try {
-      // Désactiver le bouton et afficher le chargement
-      setLoading(true);
-      
             // Tentative d'inscription avec le nom complet
             await signup(formData.email, formData.password, formData.name, "agent", formData.zone, formData.phone);      // Si l'inscription réussit, afficher un message de succès et rediriger
       toast({
@@ -80,24 +112,31 @@ const Signup = () => {
       
       // Attendre un court instant pour que l'utilisateur voie le message
       setTimeout(() => {
-        navigate("/agent");
+        navigate("/login");
       }, 500);
       
     } catch (error: any) {
       console.error("Erreur détaillée:", error);
       
-      // Afficher le message d'erreur
+      // Afficher le message d'erreur détaillé
+      let errorMessage = "Une erreur est survenue lors de la création du compte";
+      
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "Cet email est déjà utilisé";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Le mot de passe est trop faible";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Format d'email invalide";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        description: error.message || "Erreur lors de la création du compte",
+        description: errorMessage,
         variant: "destructive",
       });
       
-      const message = error instanceof Error ? error.message : "Une erreur est survenue lors de la création du compte";
-      toast({
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
+      // Le bouton reste désactivé jusqu'à ce que l'utilisateur modifie les données
       setLoading(false);
     }
   };
@@ -198,6 +237,63 @@ const Signup = () => {
                     required
                   />
                 </div>
+                {formData.password && (
+                  <div className="mt-3 p-3 bg-muted rounded-lg space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Critères du mot de passe:</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        {/[A-Z]/.test(formData.password) ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={/[A-Z]/.test(formData.password) ? "text-green-600" : "text-red-500"}>
+                          Au moins une majuscule (A-Z)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {/[a-z]/.test(formData.password) ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={/[a-z]/.test(formData.password) ? "text-green-600" : "text-red-500"}>
+                          Au moins une minuscule (a-z)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {/[0-9]/.test(formData.password) ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={/[0-9]/.test(formData.password) ? "text-green-600" : "text-red-500"}>
+                          Au moins un chiffre (0-9)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {formData.password.length >= 8 ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={formData.password.length >= 8 ? "text-green-600" : "text-red-500"}>
+                          Au moins 8 caractères
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {/[!@#$%^&*]/.test(formData.password) ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={/[!@#$%^&*]/.test(formData.password) ? "text-green-600" : "text-red-500"}>
+                          Au moins un caractère spécial (!@#$%^&*)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -244,7 +340,7 @@ const Signup = () => {
                 type="submit"
                 className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 transition-opacity"
                 size="lg"
-                disabled={loading}
+                disabled={loading || !isPasswordValid() || !formData.email || !formData.password || !formData.confirmPassword || !formData.name || !formData.phone || !formData.zone}
               >
                 {loading ? "Création du compte..." : "Créer mon compte"}
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -274,6 +370,6 @@ const Signup = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Signup;

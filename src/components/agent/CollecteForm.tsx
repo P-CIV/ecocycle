@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Scale, PackageCheck } from "lucide-react";
 import { updateAgentStats } from "@/utils/updateAgentStats";
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from "@/config/firebase";
 
 interface CollecteFormProps {
@@ -39,7 +39,7 @@ export function CollecteForm({ onSuccess }: CollecteFormProps) {
     if (!currentUser) {
       toast({
         title: "Erreur d'authentification",
-        description: "Vous devez être connecté pour effectuer une collecte",
+        description: "Vous devez être connecté",
         variant: "destructive"
       });
       return;
@@ -58,71 +58,48 @@ export function CollecteForm({ onSuccess }: CollecteFormProps) {
     setLoading(true);
 
     try {
-      // Calculer les points
       const pointsParKg = POINTS_PAR_TYPE[typeDechet as keyof typeof POINTS_PAR_TYPE];
       const points = Math.round(kg * pointsParKg);
 
       const collecteData = {
-        kg,
+        poids: kg,
         type: typeDechet,
-        points,
-        status: 'en_attente',
-        date: new Date(),
+        points: 5, // Toujours 5 points par transaction
+        status: 'success',
+        timestamp: serverTimestamp(),
         agentId: currentUser.uid,
-        agentEmail: currentUser.email,
-        createdAt: new Date()
+        agentEmail: currentUser.email
       };
 
-      // Ajouter la collecte à Firestore
       await addDoc(collection(db, 'collectes'), collecteData);
 
-      // Mettre à jour les statistiques
       await updateAgentStats({
         kg,
-        points,
-        status: 'en_attente',
+        points: 5, // Toujours 5 points par transaction
+        status: 'validee',
         date: new Date(),
         agentId: currentUser.uid
       });
 
+      // Chaque transaction rapporte 5 points
+      const transactionPoints = 5;
+
       toast({
-        title: "Collecte enregistrée",
-        description: `Collecte de ${kg}kg de ${typeDechet} enregistrée avec succès`,
+        title: "✅ Collecte enregistrée!",
+        description: `${kg}kg de ${typeDechet} enregistrés. Points gagnés: ${transactionPoints} points`,
       });
 
-      // Générer le QR code après l'enregistrement de la collecte
-      try {
-        // Tenter de générer le QR code
-        const result = await createQRCode({
-          type: typeDechet,
-          poids: kg,
-          points: Math.round(kg * POINTS_PAR_TYPE[typeDechet as keyof typeof POINTS_PAR_TYPE]),
-          createdBy: currentUser.uid
-        });
-
-        if (result.success) {
-          // Réinitialiser le formulaire
-          setKilos("");
-          setTypeDechet("plastique");
-          
-          // Appeler le callback de succès si fourni
-          if (onSuccess) {
-            onSuccess();
-          }
-        }
-      } catch (qrError) {
-        console.error('Erreur lors de la génération du QR code:', qrError);
-        toast({
-          title: "Attention",
-          description: "La collecte a été enregistrée mais la génération du QR code a échoué",
-          variant: "destructive"
-        });
+      setKilos("");
+      setTypeDechet("plastique");
+      
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement de la collecte:', error);
+      console.error('Erreur collecte:', error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de l'enregistrement de la collecte",
+        description: "Impossible d'enregistrer la collecte",
         variant: "destructive"
       });
     } finally {

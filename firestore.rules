@@ -2,193 +2,172 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    
+    // ====================================================================
     // FONCTIONS UTILITAIRES
-    
+    // ====================================================================
     
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isAdmin() {
       return request.auth != null && 
         request.auth.token.email.matches('.*@ecocycle\\.ci$');
     }
-    
-    function isMobileUser() {
-      return isAuthenticated() && !isAdmin();
+
+    function canInitialize() {
+      return isAdmin();
     }
-    
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
+
     function isInitializing() {
       return request.auth != null &&
              request.auth.token.email.matches('.*@ecocycle\\.ci$') &&
              !exists(/databases/$(database)/documents/parametres/system_status);
     }
+
+    // ====================================================================
+    // SYSTÈME WEB - COLLECTIONS ORIGINALES (PRÉSERVÉES)
+    // ====================================================================
     
-    function canInitialize() {
-      return isAdmin() && isInitializing();
-    }
-    
-    // Valider structure QR usage
-    function isValidQRUpdate(oldData, newData) {
-      let changedKeys = newData.diff(oldData).affectedKeys();
-      let allowedKeys = ['usageCount', 'lastUsedAt', 'lastUsedBy', 'scans'];
-      
-      return changedKeys.hasOnly(allowedKeys) &&
-             newData.usageCount >= oldData.usageCount &&
-             newData.usageCount <= oldData.usageCount + 100; // Anti-spam
+    // Règle globale : les admins peuvent initialiser
+    match /{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if canInitialize();
     }
 
-    // Collection users
+    // Collection utilisateurs (web)
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
-      
+      allow write: if isAdmin() || request.auth.uid == userId;
+
+      // Sous-collections pour APP MOBILE uniquement
       match /deposits/{depositId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId) || isAdmin();
-        allow delete: if isOwner(userId) || isAdmin();
+        allow read: if request.auth.uid == userId || isAdmin();
+        allow create: if request.auth.uid == userId;
+        allow update: if request.auth.uid == userId || isAdmin();
+        allow delete: if request.auth.uid == userId || isAdmin();
       }
-      
+
+      match /challenges/{challengeId} {
+        allow read: if request.auth.uid == userId || isAdmin();
+        allow write: if request.auth.uid == userId || isAdmin();
+      }
+
       match /pointsHistory/{historyId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId);
-        allow update, delete: if isAdmin();
+        allow read: if request.auth.uid == userId || isAdmin();
+        allow create: if request.auth.uid == userId;
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+
+      match /rewards/{rewardId} {
+        allow read: if request.auth.uid == userId || isAdmin();
+        allow write: if request.auth.uid == userId || isAdmin();
       }
     }
 
-    // Collection collectes
+    // Collection collectes (WEB - agents enregistrent leurs collectes)
     match /collectes/{collecteId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() || 
         (request.auth != null && request.resource.data.agentId == request.auth.uid);
     }
-    
-    // Collection distributions - admin bonus
-    match /distributions/{distributionId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-    
-    // Collection retraits - agent withdrawal
-    match /retraits/{retraitId} {
-      allow read: if isAuthenticated() && 
-                    (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
 
-    // Collection points
+    // Collection points (WEB)
     match /points/{pointId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Collection statistiques
+    // Collection statistiques (WEB)
     match /statistiques/{statId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Collection agents
+    // Collection agents (WEB - agents web)
     match /agents/{agentId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() || request.auth.uid == agentId;
     }
 
-    // Collection parametres
+    // Collection paramètres (WEB)
     match /parametres/{paramId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || canInitialize();
-    }
-    
-    // Collection settings - app configuration
-    match /settings/{settingId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isInitializing();
     }
 
-    // Collection zones
+    // Collection zones (WEB)
     match /zones/{zoneId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Collection objectifs
+    // Collection objectifs (WEB)
     match /objectifs/{objectifId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Collection activites
+    // Collection activites (WEB - agents enregistrent leurs activités)
     match /activites/{activiteId} {
       allow read: if isAuthenticated();
       allow write: if request.auth != null && 
         (request.resource.data.agentId == request.auth.uid || isAdmin());
     }
 
-    // Collection qrcodes - optimized for mobile + web
+    // Collection qrcodes (WEB - générés par agents)
     match /qrcodes/{codeId} {
       allow read: if isAuthenticated();
-      
-      allow create: if isAdmin() && 
-                      request.resource.data.createdBy == request.auth.uid;
-      
-      allow update: if isAdmin() || 
-                      (isMobileUser() && 
-                       isValidQRUpdate(resource.data, request.resource.data));
-      
-      allow delete: if isAdmin();
+      allow create: if request.auth != null && 
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null && 
+        (resource.data.createdBy == request.auth.uid || 
+         request.resource.data.createdBy == request.auth.uid);
+      allow delete: if request.auth != null && 
+        resource.data.createdBy == request.auth.uid;
     }
-    
-    // Mobile collections
+
+    // ====================================================================
+    // COLLECTIONS APP MOBILE (NOUVELLES - N'INTERFÈRENT PAS)
+    // ====================================================================
+
+    // Centre de recyclage (mobile)
     match /recyclingCenters/{centerId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    
-    match /leaderboard/{period}/users/{userId} {
+
+    // Classement (mobile)
+    match /leaderboard/{period}/{document=**} {
       allow read: if isAuthenticated();
-      allow write: if false;
+      allow write: if false; // Cloud Functions uniquement
     }
-    
+
+    // Notifications (mobile)
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && 
                     (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAdmin();
       allow update: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid &&
-                      request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['isRead', 'readAt']);
+                      resource.data.userId == request.auth.uid;
       allow delete: if isAuthenticated() && 
                       (resource.data.userId == request.auth.uid || isAdmin());
     }
-    
+
+    // Configuration app (mobile)
     match /appConfig/{configId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    
+
+    // Feedback (mobile)
     match /feedback/{feedbackId} {
       allow read: if isAdmin();
       allow create: if isAuthenticated() && 
                       request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
-    
-    // Deny everything else by default (secure)
-    match /{document=**} {
-      allow read: if false;
-      allow write: if false;
-    }
+  }
+}

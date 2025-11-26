@@ -11,6 +11,7 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 import { generateQRCodeData } from '../utils/qrUtils';
+import { updateAgentStats } from './updateAgentStats';
 
 interface QRCodeData {
     code: string;
@@ -34,6 +35,27 @@ export const createQRCode = async (data: Omit<QRCodeData, 'code' | 'status'>) =>
             status: 'active',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
+        });
+
+        // Créer une collecte associée au QR code
+        const collectesRef = collection(db, 'collectes');
+        await addDoc(collectesRef, {
+            poids: data.poids,
+            timestamp: serverTimestamp(),
+            points: 5, // Toujours 5 points par transaction
+            status: 'success',
+            agentId: data.createdBy,
+            type: data.type,
+            qrCodeId: docRef.id
+        });
+
+        // Mettre à jour les stats de l'agent
+        await updateAgentStats({
+            agentId: data.createdBy,
+            poids: data.poids,
+            points: 5, // Toujours 5 points par transaction
+            status: 'validee',
+            type: data.type
         });
 
         return {

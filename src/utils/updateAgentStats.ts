@@ -1,61 +1,53 @@
 import { db } from '@/config/firebase';
-import { doc, updateDoc, increment, getDoc, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, increment, Timestamp } from 'firebase/firestore';
 
-interface CollecteData {
-  kg: number;
+interface UpdateAgentStatsData {
+  kg?: number;
+  poids?: number;
   points: number;
-  status: 'en_attente' | 'validee' | 'rejetee';
-  date: Date;
+  status: 'validee' | 'en_attente' | 'rejetee';
+  date?: Date;
   agentId: string;
+  type?: string;
 }
 
-export const updateAgentStats = async (collecteData: CollecteData) => {
+export const updateAgentStats = async (data: UpdateAgentStatsData) => {
   try {
-    const agentRef = doc(db, 'agents', collecteData.agentId);
-    const statsRef = doc(db, 'statistiques', collecteData.agentId);
-
-    // Récupérer les stats actuelles
-    const statsDoc = await getDoc(statsRef);
-    const stats = statsDoc.data() || {};
+    const agentRef = doc(db, 'agents', data.agentId);
+    const userRef = doc(db, 'users', data.agentId);
     
-    // Calculer le nouveau taux de réussite
-    let tauxReussite = stats.tauxReussite || 100;
-    if (collecteData.status === 'validee' || collecteData.status === 'rejetee') {
-      const totalCollectes = (stats.collectesTotales || 0) + 1;
-      const collectesReussies = (stats.collectesReussies || 0) + (collecteData.status === 'validee' ? 1 : 0);
-      tauxReussite = (collectesReussies / totalCollectes) * 100;
-    }
+    const poids = data.poids || data.kg || 0;
+    // Chaque transaction rapporte exactement 5 points
+    const pointsToAdd = data.status === 'validee' ? 5 : 0;
 
-    // Mettre à jour les statistiques
-    const updates: {
-      pointsTotaux: any;
-      collectesTotales: any;
-      derniereActivite: Timestamp;
-      tauxReussite: number;
-    } = {
-      pointsTotaux: increment(collecteData.status === 'validee' ? collecteData.points : 0),
+    const agentUpdates = {
+      pointsTotaux: increment(pointsToAdd),
       collectesTotales: increment(1),
       derniereActivite: Timestamp.fromDate(new Date()),
-      tauxReussite: tauxReussite
     };
 
-    // Mettre à jour le document agent
-    await updateDoc(agentRef, updates);
+    // Mettre à jour les stats de l'agent dans la collection 'agents'
+    await updateDoc(agentRef, agentUpdates);
 
-    // Mettre à jour les statistiques
-    await updateDoc(statsRef, {
-      collectesMois: increment(collecteData.kg),
-      pointsMois: increment(collecteData.status === 'validee' ? collecteData.points : 0),
-      collectesJour: increment(1),
-      collectesTotales: increment(1),
-      collectesReussies: increment(collecteData.status === 'validee' ? 1 : 0),
-      derniereCollecte: Timestamp.fromDate(collecteData.date),
-      miseAJour: Timestamp.fromDate(new Date())
+    // IMPORTANT: Aussi mettre à jour les points dans la collection 'users' 
+    // pour que le portefeuille de retrait affiche les bons points
+    // Utiliser setDoc avec merge:true pour créer le document s'il n'existe pas
+    const userUpdates = {
+      points: increment(pointsToAdd),
+      updatedAt: Timestamp.fromDate(new Date())
+    };
+    
+    await setDoc(userRef, userUpdates, { merge: true }).then(() => {
+      console.log(`✅ +${pointsToAdd} points ajoutés au portefeuille de ${data.agentId}`);
+    }).catch((error) => {
+      console.error('Erreur mise à jour user points:', error);
     });
+
+    console.log(`✅ Stats agent ${data.agentId} mises à jour: +${pointsToAdd} points, +1 collecte`);
 
     return true;
   } catch (error) {
-    console.error('Erreur lors de la mise à jour des statistiques:', error);
+    console.error('Erreur mise à jour stats:', error);
     return false;
   }
 };

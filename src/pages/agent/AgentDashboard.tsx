@@ -14,26 +14,20 @@ import '@/components/agent/enhanced-components.css';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { testFirebaseConnection } from '@/utils/firebaseTest';
+import { debugCollectes } from '@/utils/debugCollectes';
 
 const AgentDashboard = () => {
   const { user, userRole, loading: authLoading, displayName } = useAuth();
   const { stats, loading: statsLoading, error: statsError } = useRealtimeStats();
 
-  console.log('AgentDashboard - Rendu initial');
-  console.log('Auth - Loading:', authLoading);
-  console.log('Stats - Loading:', statsLoading);
-  console.log('User:', user?.email);
-  console.log('UserRole:', userRole);
-  console.log('Stats:', stats);
-  console.log('Stats Error:', statsError);
-
-  // Les données de debug sont affichées plus haut dans la console
-
   useEffect(() => {
-    // Connexion testée au démarrage
     testFirebaseConnection().catch((error) => {
-      console.log('Erreur connexion Firebase:', error);
+      console.log('Erreur connexion:', error);
     });
+    
+    if (user?.uid) {
+      debugCollectes(user.uid);
+    }
   }, [user?.uid]);
 
   if (!user || statsError) {
@@ -51,7 +45,6 @@ const AgentDashboard = () => {
 
   return (
     <div className="space-y-6 agent-dashboard">
-      {/* En-tête moderne avec statut intégré */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -82,8 +75,6 @@ const AgentDashboard = () => {
             <div className="h-8 w-px bg-border hidden md:block"></div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-xs">
-                {/* Point coloré masqué */}
-                {/* Système connecté masqué */}
               </div>
               <div className="flex flex-col items-end">
                 <span className="text-sm font-medium">Dernière connexion</span>
@@ -99,9 +90,6 @@ const AgentDashboard = () => {
         </div>
       </motion.div>
 
-      {/* Section des statistiques commence directement ici */}
-
-      {/* Section des statistiques */}
       <motion.div 
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
         initial={{ opacity: 0, y: 20 }}
@@ -128,7 +116,7 @@ const AgentDashboard = () => {
                 </div>
               </div>
               <div className="flex items-baseline gap-2 mt-4">
-                <span className="text-3xl font-bold">{stats?.collectesMois || 0}</span>
+                <span className="text-3xl font-bold">{stats?.collectesKgMois || 0}</span>
                 <span className="text-blue-200 font-medium">kg</span>
               </div>
             </div>
@@ -213,7 +201,6 @@ const AgentDashboard = () => {
         </motion.div>
       </motion.div>
 
-      {/* Graphiques */}
       {/* Résumé rapide et activités récentes */}
       {authLoading || statsLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -221,7 +208,6 @@ const AgentDashboard = () => {
         </div>
       ) : (
         <>
-          {/* Section Résumé et Timeline */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -234,12 +220,11 @@ const AgentDashboard = () => {
               objectifMois={100}
             />
             
-            <div className="h-[400px]"> {/* Hauteur fixe pour la chronologie */}
+            <div className="h-[400px]">
               <Timeline activities={stats?.activitesRecentes || []} />
             </div>
           </motion.div>
 
-          {/* QR Code Manager */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -250,7 +235,6 @@ const AgentDashboard = () => {
             />
           </motion.div>
 
-          {/* Graphiques améliorés */}
           <EnhancedCharts
             collectesData={stats?.evolutionCollectes || []}
             performanceData={stats?.performanceHebdo || []}

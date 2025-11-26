@@ -5,7 +5,6 @@ import {
   collection, 
   where, 
   orderBy,
-  getDocs,
   Timestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -13,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface Agent {
   id: string;
-  points: number;
+  pointsTotaux: number;
   totalCollectes: number;
 }
 
@@ -38,6 +37,7 @@ export interface Collecte {
 
 export interface RealtimeStats {
   collectesMois: number;
+  collectesKgMois: number;
   pointsGagnes: number;
   tauxReussite: number;
   collectesAujourdhui: number;
@@ -90,6 +90,7 @@ export interface RealtimeStats {
 
 const initialStats: RealtimeStats = {
   collectesMois: 0,
+  collectesKgMois: 0,
   pointsGagnes: 0,
   tauxReussite: 0,
   collectesAujourdhui: 0,
@@ -128,77 +129,89 @@ export const useRealtimeStats = () => {
       return;
     }
 
-    console.log('Initialisation des écouteurs pour:', user.uid);
     setLoading(true);
 
     // Collection de référence pour les activités
     const activitesRef = collection(db, 'activites');
     const collectesRef = collection(db, 'collectes');
     
-    // Requête pour les activités de l'agent
     const activitesQuery = query(
       activitesRef,
-      where('agentId', '==', user.uid),
-      orderBy('timestamp', 'desc')
+      where('agentId', '==', user.uid)
     );
 
-    // Requête pour les collectes de l'agent
     const collectesQuery = query(
       collectesRef,
-      where('agentId', '==', user.uid),
-      orderBy('timestamp', 'desc')
+      where('agentId', '==', user.uid)
     );
 
     // Fonction pour calculer les statistiques
-    const calculateStats = async (
+    const toDate = (timestamp: any): Date | null => {
+      if (!timestamp) return null;
+      if (timestamp.toDate) return timestamp.toDate();
+      if (timestamp instanceof Date) return timestamp;
+      return null;
+    };
+
+    // Fonction pour obtenir la date d'une collecte (gère les deux formats: date et timestamp)
+    const getCollecteDate = (collecte: any): Date | null => {
+      const ts = collecte.timestamp || collecte.date;
+      return toDate(ts);
+    };
+
+    const calculateStats = (
       activites: Activity[], 
-      collectes: Collecte[]
-    ): Promise<RealtimeStats> => {
+      collectes: Collecte[],
+      agents: Agent[]
+    ): RealtimeStats => {
       const now = new Date();
       const debutMois = new Date(now.getFullYear(), now.getMonth(), 1);
       const aujourdhui = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      // Filtrer les collectes du mois
-      const collectesMois = collectes.filter(c => 
-        c.timestamp.toDate() >= debutMois
-      );
+      // Fonction utilitaire pour obtenir le poids (ancien champ 'kg' ou nouveau 'poids')
+      const getPoids = (collecte: any): number => {
+        return (collecte.poids ?? collecte.kg ?? 0);
+      };
 
-      // Filtrer les collectes d'aujourd'hui
-      const collectesAujourdhui = collectes.filter(c => 
-        c.timestamp.toDate() >= aujourdhui
-      );
+      const collectesMois = collectes.filter(c => {
+        const cDate = getCollecteDate(c);
+        return cDate && cDate >= debutMois;
+      });
 
-      // Calculer les points totaux
+      const collectesKgMois = collectesMois.reduce((acc, curr) => acc + getPoids(curr), 0);
+
+      const collectesAujourdhui = collectes.filter(c => {
+        const cDate = getCollecteDate(c);
+        return cDate && cDate >= aujourdhui;
+      });
+
       const pointsGagnes = collectesMois.reduce((acc, curr) => acc + curr.points, 0);
 
-      // Calculer le taux de réussite
       const totalTentatives = collectesMois.length;
       const reussies = collectesMois.filter(c => c.status === 'success').length;
       const tauxReussite = totalTentatives ? (reussies / totalTentatives) * 100 : 0;
 
-      // Préparer les données pour les graphiques
       const evolutionCollectes = [...Array(6)].map((_, i) => {
         const moisDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const collectesDuMois = collectes.filter(c => {
-          const date = c.timestamp.toDate();
-          return date.getMonth() === moisDate.getMonth() &&
+          const date = getCollecteDate(c);
+          return date && date.getMonth() === moisDate.getMonth() &&
                  date.getFullYear() === moisDate.getFullYear();
         });
         
         return {
           mois: moisDate.toLocaleDateString('fr-FR', { month: 'short' }),
-          kg: collectesDuMois.reduce((acc, curr) => acc + curr.poids, 0),
-          points: collectesDuMois.reduce((acc, curr) => acc + curr.points, 0)
+          kg: collectesDuMois.reduce((acc, curr) => acc + getPoids(curr), 0),
+          points: collectesDuMois.reduce((acc, curr) => acc + (curr.points || 0), 0)
         };
       }).reverse();
 
-      // Performance hebdomadaire
       const performanceHebdo = [...Array(7)].map((_, i) => {
         const jour = new Date(now);
         jour.setDate(now.getDate() - i);
         const collectesDuJour = collectes.filter(c => {
-          const date = c.timestamp.toDate();
-          return date.toDateString() === jour.toDateString();
+          const date = getCollecteDate(c);
+          return date && date.toDateString() === jour.toDateString();
         });
 
         return {
@@ -207,106 +220,102 @@ export const useRealtimeStats = () => {
         };
       }).reverse();
 
-      // Scans récents
       const scansRecents = collectes
+        .filter(c => getCollecteDate(c) !== null)
         .slice(0, 5)
         .map(c => ({
           id: c.id,
-          timestamp: c.timestamp.toDate(),
+          timestamp: getCollecteDate(c)!,
           points: c.points,
           type: c.type,
           status: c.status
         }));
 
-      // Activités récentes
       const activitesRecentes = activites
+        .filter(a => toDate(a.timestamp) !== null)
         .slice(0, 5)
         .map(a => ({
           id: a.id,
           type: a.type,
           description: a.description,
-          timestamp: a.timestamp.toDate(),
+          timestamp: toDate(a.timestamp)!,
           points: a.points
         }));
 
-      // Calcul du total annuel
       const debutAnnee = new Date(now.getFullYear(), 0, 1);
-      const collectesAnnee = collectes.filter(c => 
-        c.timestamp.toDate() >= debutAnnee
-      );
+      const collectesAnnee = collectes.filter(c => {
+        const cDate = getCollecteDate(c);
+        return cDate && cDate >= debutAnnee;
+      });
 
-      // Calcul du total annuel à partir des collectes réelles uniquement
       const totalAnnee = collectesAnnee.reduce((acc, curr) => ({
-        kg: acc.kg + (curr.poids || 0),
+        kg: acc.kg + getPoids(curr),
         points: acc.points + (curr.points || 0)
       }), { kg: 0, points: 0 });
 
-      // Calcul de la moyenne mensuelle et de son évolution
       const moisActuel = now.getMonth() + 1;
       const moyenneMensuelle = {
         kg: moisActuel > 0 ? Math.round(totalAnnee.kg / moisActuel) : 0,
-        evolution: 0 // On initialise à 0, sera calculé ci-dessous
+        evolution: 0
       };
 
-      // Calcul de l'évolution par rapport au mois précédent
       if (moisActuel > 1) {
         const moisPrecedent = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const finMoisPrecedent = new Date(now.getFullYear(), now.getMonth(), 0);
         
         const collectesMoisPrecedent = collectes.filter(c => {
-          const date = c.timestamp.toDate();
-          return date >= moisPrecedent && date <= finMoisPrecedent;
+          const date = getCollecteDate(c);
+          return date && date >= moisPrecedent && date <= finMoisPrecedent;
         });
 
-        const totalMoisPrecedent = collectesMoisPrecedent.reduce((acc, curr) => acc + (curr.poids || 0), 0);
-        const moyenneMoisPrecedent = totalMoisPrecedent;
+        const totalMoisPrecedent = collectesMoisPrecedent.reduce((acc, curr) => acc + getPoids(curr), 0);
 
-        if (moyenneMoisPrecedent > 0) {
-          const evolution = ((moyenneMensuelle.kg - moyenneMoisPrecedent) / moyenneMoisPrecedent) * 100;
+        if (totalMoisPrecedent > 0) {
+          const evolution = ((moyenneMensuelle.kg - totalMoisPrecedent) / totalMoisPrecedent) * 100;
           moyenneMensuelle.evolution = Number(evolution.toFixed(1));
         }
       }
 
-      // Répartition par type avec initialisation de tous les types possibles
       const typesDeDechet = ['plastique', 'papier', 'verre', 'polystyrène', 'carton'];
-      const repartitionParType = typesDeDechet.map(type => ({
-        type,
-        quantite: collectes
-          .filter(c => c.type === type)
-          .reduce((acc, curr) => acc + (curr.poids || 0), 0)
-      }));
+      const repartitionParType = typesDeDechet.map(type => {
+        const collectesType = collectes.filter(c => (c.type || 'autre').toLowerCase() === type.toLowerCase());
+        const quantite = collectesType.reduce((acc, curr) => acc + getPoids(curr), 0);
+        return {
+          type: type.charAt(0).toUpperCase() + type.slice(1),
+          quantite
+        };
+      }).filter(t => t.quantite > 0);
+      
+      console.log('📦 Répartition par type:', {
+        total_collectes: collectes.length,
+        collectes_par_type: repartitionParType,
+        types_bruts: collectes.map(c => ({ type: c.type, poids: getPoids(c) }))
+      });
 
-      // Calculer les statistiques de l'équipe
-      const agentsSnapshot = await getDocs(agentsQuery);
-      const agentsData = agentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        points: doc.data().points || 0,
-        totalCollectes: doc.data().totalCollectes || 0
-      }));
+      const position = agents.findIndex(a => a.id === user.uid) + 1;
+      const premierAgent = agents[0];
+      const mesStats = agents.find(a => a.id === user.uid);
+      const moyennePoints = agents.length > 0 ? 
+        agents.reduce((acc, curr) => acc + curr.pointsTotaux, 0) / agents.length : 0;
 
-      const position = agentsData.findIndex(a => a.id === user.uid) + 1;
-      const premierAgent = agentsData[0];
-      const mesStats = agentsData.find(a => a.id === user.uid);
-      const moyennePoints = agentsData.reduce((acc, curr) => acc + curr.points, 0) / agentsData.length;
-
-      // Position dans l'équipe et comparaisons avec gestion robuste des cas limites
       const comparaisonEquipe = {
-        position: agentsData.length > 0 ? Math.min(position, agentsData.length) : 0,
-        total: agentsData.length,
-        ecartPremier: premierAgent && mesStats ? Math.max(0, premierAgent.points - mesStats.points) : 0,
+        position: agents.length > 0 ? Math.min(position, agents.length) : 0,
+        total: agents.length,
+        ecartPremier: premierAgent && mesStats ? Math.max(0, premierAgent.pointsTotaux - mesStats.pointsTotaux) : 0,
         ecartMoyenne: mesStats && moyennePoints > 0 ? 
-          Math.round(((mesStats.points - moyennePoints) / moyennePoints) * 100) : 0
+          Math.round(((mesStats.pointsTotaux - moyennePoints) / moyennePoints) * 100) : 0
       };
 
-      // Calcul des jours actifs dans le mois
       const joursUniques = new Set(
-        collectesMois.map(c => 
-          c.timestamp.toDate().toISOString().split('T')[0]
-        )
+        collectesMois
+          .map(c => {
+            const date = getCollecteDate(c);
+            return date?.toISOString().split('T')[0];
+          })
+          .filter((d): d is string => !!d)
       );
       const joursActifs = joursUniques.size;
 
-      // Calcul du nombre total de jours dans le mois actuel
       const joursTotaux = new Date(
         now.getFullYear(),
         now.getMonth() + 1,
@@ -315,6 +324,7 @@ export const useRealtimeStats = () => {
 
       return {
         collectesMois: collectesMois.length,
+        collectesKgMois,
         pointsGagnes,
         tauxReussite,
         collectesAujourdhui: collectesAujourdhui.length,
@@ -333,103 +343,97 @@ export const useRealtimeStats = () => {
 
     let activitesData: Activity[] = [];
     let collectesData: Collecte[] = [];
+    let agentsData: Agent[] = [];
 
-    // Requête pour les statistiques de l'équipe
     const agentsRef = collection(db, 'agents');
-    const agentsQuery = query(agentsRef, orderBy('points', 'desc'));
+    const agentsQuery = query(agentsRef, orderBy('pointsTotaux', 'desc'));
 
-    // Observer les activités
-    console.log('Création de la requête activités pour l\'utilisateur:', user?.uid);
-    console.log('Query activités:', activitesQuery);
-    
     const unsubscribeActivites = onSnapshot(
       activitesQuery,
       (snapshot) => {
-        console.log('Mise à jour des activités reçue');
-        console.log('Nombre de docs:', snapshot.docs.length);
-        console.log('Docs:', snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-        if (snapshot.empty) {
-          console.log('Aucune activité trouvée');
-        }
         activitesData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data()
         })) as Activity[];
         
-        if (activitesData && collectesData) {
-          try {
-            calculateStats(activitesData, collectesData).then(newStats => {
-              setStats(newStats);
-              setLoading(false);
-              setError(null); // Réinitialiser l'erreur si la requête réussit
-            }).catch(err => {
-              console.error('Erreur lors du calcul des statistiques:', err);
-              setError('Erreur lors de la mise à jour des statistiques');
-            });
-          } catch (err) {
-            console.error('Erreur lors du calcul des statistiques:', err);
-            setError('Erreur lors de la mise à jour des statistiques');
-          }
-        }
+        activitesData.sort((a, b) => {
+          const aDate = toDate(a.timestamp) || new Date(0);
+          const bDate = toDate(b.timestamp) || new Date(0);
+          return bDate.getTime() - aDate.getTime();
+        });
+        
+        setStats(calculateStats(activitesData, collectesData, agentsData));
+        setLoading(false);
+        setError(null);
       },
       (error) => {
-        console.error('Erreur de l\'écouteur des activités:', error);
-        console.error('Code d\'erreur:', error.code);
-        console.error('Message d\'erreur:', error.message);
-        console.error('Stack trace:', error.stack);
-        
-        if (error.code === 'permission-denied') {
-          setError('Vous n\'avez pas les permissions nécessaires pour accéder aux activités');
-        } else if (error.code === 'unavailable') {
-          setError('Service temporairement indisponible. Veuillez réessayer plus tard.');
-        } else {
-          setError(`Erreur de connexion aux activités: ${error.message}. Veuillez vérifier votre connexion internet.`);
-        }
+        console.error('❌ Erreur écouteur activités:', error.code, error.message);
+        console.warn('Continuant sans activités');
         setLoading(false);
       }
     );
 
-    // Observer les collectes
     const unsubscribeCollectes = onSnapshot(
       collectesQuery,
       (snapshot) => {
-        console.log('Mise à jour des collectes reçue');
-        console.log('Nombre de collectes:', snapshot.docs.length);
-        console.log('Collectes:', snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-        if (snapshot.empty) {
-          console.log('Aucune collecte trouvée');
-        }
-        collectesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Collecte[];
+        collectesData = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            timestamp: data.timestamp,
+            date: data.date,
+            points: data.points || 0,
+            poids: data.poids,
+            kg: data.kg,
+            type: data.type || 'autre',
+            status: data.status || 'success',
+            agentId: data.agentId
+          };
+        }) as Collecte[];
         
-        if (activitesData && collectesData) {
-          try {
-            calculateStats(activitesData, collectesData).then(newStats => {
-              setStats(newStats);
-              setLoading(false);
-            }).catch(err => {
-              console.error('Erreur lors du calcul des statistiques:', err);
-              setError('Erreur lors de la mise à jour des statistiques');
-            });
-          } catch (err) {
-            console.error('Erreur lors du calcul des statistiques:', err);
-            setError('Erreur lors de la mise à jour des statistiques');
-          }
-        }
+        console.log('📦 Collectes mises à jour:', collectesData.length, 'collectes');
+        console.log('   Types trouvés:', collectesData.map(c => c.type).filter((v, i, a) => a.indexOf(v) === i));
+        
+        collectesData.sort((a, b) => {
+          const aDate = toDate(a.timestamp) || new Date(0);
+          const bDate = toDate(b.timestamp) || new Date(0);
+          return bDate.getTime() - aDate.getTime();
+        });
+        
+        setStats(calculateStats(activitesData, collectesData, agentsData));
+        setLoading(false);
       },
       (error) => {
-        console.error('Erreur de l\'écouteur des collectes:', error);
-        setError('Erreur de connexion aux collectes');
+        console.error('❌ Erreur écouteur collectes:', error.code, error.message);
+        console.warn('Continuant sans collectes');
         setLoading(false);
       }
     );
 
-    // Cleanup
+    const unsubscribeAgents = onSnapshot(
+      agentsQuery,
+      (snapshot) => {
+        agentsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          pointsTotaux: doc.data().pointsTotaux || 0,
+          totalCollectes: doc.data().collectesTotales || 0
+        })) as Agent[];
+        
+        setStats(calculateStats(activitesData, collectesData, agentsData));
+        setLoading(false);
+        setError(null);
+      },
+      (error) => {
+        console.error('❌ Erreur écouteur agents:', error.code, error.message);
+        console.warn('Continuant sans agents');
+        setLoading(false);
+      }
+    );
+
     return () => {
       unsubscribeActivites();
       unsubscribeCollectes();
+      unsubscribeAgents();
     };
   }, [user?.uid]);
 

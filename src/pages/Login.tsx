@@ -15,6 +15,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const { toast } = useToast();
   const { login, userRole } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function Login() {
     }
 
     setLoading(true);
+    setHasError(false);
 
     try {
       const user = await login(email, password);
@@ -63,7 +65,22 @@ export default function Login() {
           variant: "destructive",
         });
       }
+      
+      // Garder le bouton désactivé après une erreur jusqu'à modification des données
+      setHasError(true);
+      setLoading(false);
     }
+  };
+
+  // Réinitialiser l'état d'erreur quand l'utilisateur modifie les champs
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setHasError(false);
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setHasError(false);
   };
 
   return (
@@ -108,7 +125,7 @@ export default function Login() {
                     type="email"
                     placeholder="votre@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -131,7 +148,7 @@ export default function Login() {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -144,7 +161,7 @@ export default function Login() {
                   loading ? "animate-pulse" : ""
                 }`}
                 size="lg"
-                disabled={loading}
+                disabled={loading || hasError || !email || !password}
               >
                 <div className="flex items-center justify-center">
                   {loading ? (
